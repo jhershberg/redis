@@ -29,21 +29,6 @@
 #define CLUSTER_REDIR_DOWN_UNBOUND 6  /* -CLUSTERDOWN, unbound slot. */
 #define CLUSTER_REDIR_DOWN_RO_STATE 7 /* -CLUSTERDOWN, allow reads. */
 
-struct clusterNode;
-
-/* clusterLink encapsulates everything needed to talk with a remote node. */
-typedef struct clusterLink {
-    mstime_t ctime;             /* Link creation time */
-    connection *conn;           /* Connection to remote node */
-    list *send_msg_queue;        /* List of messages to be sent */
-    size_t head_msg_send_offset; /* Number of bytes already sent of message at head of queue */
-    unsigned long long send_msg_queue_mem; /* Memory in bytes used by message queue */
-    char *rcvbuf;               /* Packet reception buffer */
-    size_t rcvbuf_len;          /* Used size of rcvbuf */
-    size_t rcvbuf_alloc;        /* Allocated size of rcvbuf */
-    struct clusterNode *node;   /* Node related to this link. Initialized to NULL when unknown */
-    int inbound;                /* 1 if this link is an inbound link accepted from the related node */
-} clusterLink;
 
 /* Cluster node flags and macros. */
 #define CLUSTER_NODE_MASTER 1     /* The node is a master */
