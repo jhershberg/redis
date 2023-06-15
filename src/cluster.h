@@ -52,21 +52,6 @@
 #define nodeFailed(n) ((n)->flags & CLUSTER_NODE_FAIL)
 #define nodeCantFailover(n) ((n)->flags & CLUSTER_NODE_NOFAILOVER)
 
-/* Reasons why a slave is not able to failover. */
-#define CLUSTER_CANT_FAILOVER_NONE 0
-#define CLUSTER_CANT_FAILOVER_DATA_AGE 1
-#define CLUSTER_CANT_FAILOVER_WAITING_DELAY 2
-#define CLUSTER_CANT_FAILOVER_EXPIRED 3
-#define CLUSTER_CANT_FAILOVER_WAITING_VOTES 4
-#define CLUSTER_CANT_FAILOVER_RELOG_PERIOD (10) /* seconds. */
-
-/* clusterState todo_before_sleep flags. */
-#define CLUSTER_TODO_HANDLE_FAILOVER (1<<0)
-#define CLUSTER_TODO_UPDATE_STATE (1<<1)
-#define CLUSTER_TODO_SAVE_CONFIG (1<<2)
-#define CLUSTER_TODO_FSYNC_CONFIG (1<<3)
-#define CLUSTER_TODO_HANDLE_MANUALFAILOVER (1<<4)
-
 /* Message types.
  *
  * Note that the PING, PONG and MEET messages are actually the same exact
