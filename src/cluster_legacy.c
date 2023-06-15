@@ -281,7 +281,7 @@ int clusterLoadConfig(char *filename) {
         int argc, aux_argc;
         sds *argv, *aux_argv;
         clusterNode *n, *master;
-        clusterNodeData *n_data;
+        clusterNodeInternal *n_data;
         char *p, *s;
 
         /* Skip blank lines, they can be created either by users manually
@@ -768,7 +768,7 @@ void clusterUpdateMyselfFlags(void) {
 * The option can be set at runtime via CONFIG SET. */
 void clusterUpdateMyselfAnnouncedPorts(void) {
     if (!myself) return;
-    clusterNodeData *myself_data = nodeData(myself);
+    clusterNodeInternal *myself_data = nodeData(myself);
     deriveAnnouncedPorts(&myself_data->port,&myself_data->pport,&myself_data->cport);
 }
 
@@ -802,7 +802,7 @@ void clusterUpdateMyselfIp(void) {
 
 /* Update the hostname for the specified node with the provided C string. */
 static void updateAnnouncedHostname(clusterNode *node, char *new) {
-    clusterNodeData *node_data = nodeData(node);
+    clusterNodeInternal *node_data = nodeData(node);
     /* Previous and new hostname are the same, no need to update. */
     if (new && !strcmp(new, node_data->hostname)) {
         return;
@@ -844,7 +844,7 @@ void clusterUpdateMyselfHostname(void) {
 }
 
 void clusterInit(void) {
-    clusterNodeData *myself_data;
+    clusterNodeInternal *myself_data;
     int saveconf = 0;
 
     server.cluster = zmalloc(sizeof(clusterState));
@@ -1094,7 +1094,7 @@ void freeClusterLink(clusterLink *link) {
 void setClusterNodeToInboundClusterLink(clusterNode *node, clusterLink *link) {
     serverAssert(!link->node);
     serverAssert(link->inbound);
-    clusterNodeData *node_data = nodeData(node);
+    clusterNodeInternal *node_data = nodeData(node);
     if (node_data->inbound_link) {
         /* A peer may disconnect and then reconnect with us, and it's not guaranteed that
          * we would always process the disconnection of the existing inbound link before
@@ -1259,7 +1259,7 @@ clusterNode *createClusterNode(char *nodename, int flags) {
     node->numslaves = 0;
     node->slaves = NULL;
     node->slaveof = NULL;
-    clusterNodeData *data = zmalloc(sizeof(clusterNodeData));
+    clusterNodeInternal *data = zmalloc(sizeof(clusterNodeInternal));
     node->data = data;
     data->last_in_ping_gossip = 0;
     data->ping_sent = data->pong_received = 0;
@@ -1419,7 +1419,7 @@ int clusterCountNonFailingSlaves(clusterNode *n) {
 
 /* Low level cleanup of the node structure. Only called by clusterDelNode(). */
 void freeClusterNode(clusterNode *n) {
-    clusterNodeData *n_data = nodeData(n);
+    clusterNodeInternal *n_data = nodeData(n);
     sds nodename;
     int j;
 
@@ -1888,7 +1888,7 @@ int clusterHandshakeInProgress(char *ip, int port, int cport) {
     di = dictGetSafeIterator(server.cluster->nodes);
     while((de = dictNext(di)) != NULL) {
         clusterNode *node = dictGetVal(de);
-        clusterNodeData *node_data = nodeData(node);
+        clusterNodeInternal *node_data = nodeData(node);
 
         if (!nodeInHandshake(node)) continue;
         if (!strcasecmp(node_data->ip,ip) &&
@@ -1908,7 +1908,7 @@ int clusterHandshakeInProgress(char *ip, int port, int cport) {
  * EINVAL - IP or port are not valid. */
 int clusterStartHandshake(char *ip, int port, int cport) {
     clusterNode *n;
-    clusterNodeData *n_data;
+    clusterNodeInternal *n_data;
     char norm_ip[NET_IP_STR_LEN];
     struct sockaddr_storage sa;
 
@@ -1973,7 +1973,7 @@ void clusterProcessGossipSection(clusterMsg *hdr, clusterLink *link) {
     while(count--) {
         uint16_t flags = ntohs(g->flags);
         clusterNode *node;
-        clusterNodeData *node_data;
+        clusterNodeInternal *node_data;
         sds ci;
 
         if (server.verbosity == LL_DEBUG) {
@@ -2115,7 +2115,7 @@ int nodeIp2String(char *buf, clusterLink *link, char *announced_ip) {
 int nodeUpdateAddressIfNeeded(clusterNode *node, clusterLink *link,
                               clusterMsg *hdr)
 {
-    clusterNodeData *node_data = nodeData(node);
+    clusterNodeInternal *node_data = nodeData(node);
     char ip[NET_IP_STR_LEN] = {0};
     int port = ntohs(hdr->port);
     int pport = ntohs(hdr->pport);
@@ -2376,7 +2376,7 @@ clusterMsgPingExt *nextPingExt(clusterMsgPingExt *ext) {
  *    written extension and will return the amount of bytes
  *    written. */
 uint32_t writePingExt(clusterMsg *hdr, int gossipcount)  {
-    clusterNodeData *myself_data = nodeData(myself);
+    clusterNodeInternal *myself_data = nodeData(myself);
     uint16_t extensions = 0;
     uint32_t totlen = 0;
     clusterMsgPingExt *cursor = NULL;
@@ -2547,7 +2547,7 @@ int clusterProcessPacket(clusterLink *link) {
     uint64_t senderCurrentEpoch = 0, senderConfigEpoch = 0;
     uint32_t explen; /* expected length of this packet */
     clusterNode *sender;
-    clusterNodeData *sender_data;
+    clusterNodeInternal *sender_data;
 
     if (type == CLUSTERMSG_TYPE_PING || type == CLUSTERMSG_TYPE_PONG ||
         type == CLUSTERMSG_TYPE_MEET)
@@ -2666,7 +2666,7 @@ int clusterProcessPacket(clusterLink *link) {
          * However if we don't have an address at all, we update the address
          * even with a normal PING packet. If it's wrong it will be fixed
          * by MEET later. */
-        clusterNodeData *myself_data = nodeData(myself);
+        clusterNodeInternal *myself_data = nodeData(myself);
         if ((type == CLUSTERMSG_TYPE_MEET || myself_data->ip[0] == '\0') &&
             server.cluster_announce_ip == NULL)
         {
@@ -2688,7 +2688,7 @@ int clusterProcessPacket(clusterLink *link) {
          * resolved when we'll receive PONGs from the node. */
         if (!sender && type == CLUSTERMSG_TYPE_MEET) {
             clusterNode *node;
-            clusterNodeData *node_data;
+            clusterNodeInternal *node_data;
 
             node = createClusterNode(NULL,CLUSTER_NODE_HANDSHAKE);
             node_data = nodeData(node);
@@ -2750,7 +2750,7 @@ int clusterProcessPacket(clusterLink *link) {
                 /* If the reply has a non matching node ID we
                  * disconnect this node and set it as not having an associated
                  * address. */
-                clusterNodeData *link_node_data = nodeData(link->node);
+                clusterNodeInternal *link_node_data = nodeData(link->node);
                 serverLog(LL_DEBUG,"PONG contains mismatching sender ID. About node %.40s added %d ms ago, having flags %d",
                     link->node->name,
                     (int)(now-(link->node->ctime)),
@@ -3104,7 +3104,7 @@ void clusterWriteHandler(connection *conn) {
 void clusterLinkConnectHandler(connection *conn) {
     clusterLink *link = connGetPrivateData(conn);
     clusterNode *node = link->node;
-    clusterNodeData *node_data = nodeData(node);
+    clusterNodeInternal *node_data = nodeData(node);
 
     /* Check if connection succeeded */
     if (connGetState(conn) != CONN_STATE_CONNECTED) {
@@ -3341,7 +3341,7 @@ static void clusterBuildMessageHdr(clusterMsg *hdr, int type, size_t msglen) {
 /* Set the i-th entry of the gossip section in the message pointed by 'hdr'
  * to the info of the specified node 'n'. */
 void clusterSetGossipEntry(clusterMsg *hdr, int i, clusterNode *n) {
-    clusterNodeData *n_data = nodeData(n);
+    clusterNodeInternal *n_data = nodeData(n);
     clusterMsgDataGossip *gossip;
     gossip = &(hdr->data.ping.gossip[i]);
     memcpy(gossip->nodename,n->name,CLUSTER_NAMELEN);
@@ -3424,7 +3424,7 @@ void clusterSendPing(clusterLink *link, int type) {
     while(freshnodes > 0 && gossipcount < wanted && maxiterations--) {
         dictEntry *de = dictGetRandomKey(server.cluster->nodes);
         clusterNode *this = dictGetVal(de);
-        clusterNodeData *this_data = nodeData(this);
+        clusterNodeInternal *this_data = nodeData(this);
 
         /* Don't include this node: the whole packet header is about us
          * already, so we just gossip about other nodes. */
@@ -3720,7 +3720,7 @@ void clusterSendMFStart(clusterNode *node) {
 /* Vote for the node asking for our vote if there are the conditions. */
 void clusterSendFailoverAuthIfNeeded(clusterNode *node, clusterMsg *request) {
     clusterNode *master = node->slaveof;
-    clusterNodeData *master_data = nodeData(node);
+    clusterNodeInternal *master_data = nodeData(node);
     uint64_t requestCurrentEpoch = ntohu64(request->currentEpoch);
     uint64_t requestConfigEpoch = ntohu64(request->configEpoch);
     unsigned char *claimed_slots = request->myslots;
@@ -4195,7 +4195,7 @@ void clusterHandleSlaveMigration(int max_slaves) {
     di = dictGetSafeIterator(server.cluster->nodes);
     while((de = dictNext(di)) != NULL) {
         clusterNode *node = dictGetVal(de);
-        clusterNodeData *node_data = nodeData(node);
+        clusterNodeInternal *node_data = nodeData(node);
         int okslaves = 0, is_orphaned = 1;
 
         /* We want to migrate only if this master is working, orphaned, and
@@ -4337,7 +4337,7 @@ void clusterHandleManualFailover(void) {
  * Also update a few stats while we are here, that can be used to make
  * better decisions in other part of the code. */
 static int clusterNodeCronHandleReconnect(clusterNode *node, mstime_t handshake_timeout, mstime_t now) {
-    clusterNodeData* node_data = nodeData(node);
+    clusterNodeInternal* node_data = nodeData(node);
 
     /* Not interested in reconnecting the link with myself or nodes
      * for which we have no address. */
@@ -4393,7 +4393,7 @@ static void freeClusterLinkOnBufferLimitReached(clusterLink *link) {
 
 /* Free outbound link to a node if its send buffer size exceeded limit. */
 static void clusterNodeCronFreeLinkOnBufferLimitReached(clusterNode *node) {
-    clusterNodeData *node_data = nodeData(node);
+    clusterNodeInternal *node_data = nodeData(node);
     freeClusterLinkOnBufferLimitReached(node_data->link);
     freeClusterLinkOnBufferLimitReached(node_data->inbound_link);
 }
@@ -4448,7 +4448,7 @@ void clusterCron(void) {
         for (j = 0; j < 5; j++) {
             de = dictGetRandomKey(server.cluster->nodes);
             clusterNode *this = dictGetVal(de);
-            clusterNodeData *node_data = nodeData(this);
+            clusterNodeInternal *node_data = nodeData(this);
 
             /* Don't ping nodes disconnected or with a ping currently active. */
             if (node_data->link == NULL || node_data->ping_sent != 0) continue;
@@ -4477,7 +4477,7 @@ void clusterCron(void) {
     di = dictGetSafeIterator(server.cluster->nodes);
     while((de = dictNext(di)) != NULL) {
         clusterNode *node = dictGetVal(de);
-        clusterNodeData *node_data = nodeData(node);
+        clusterNodeInternal *node_data = nodeData(node);
         now = mstime(); /* Use an updated time at every iteration. */
 
         if (node->flags &
@@ -5043,7 +5043,7 @@ sds representSlotInfo(sds ci, uint16_t *slot_info_pairs, int slot_info_pairs_cou
  *
  * The function returns the string representation as an SDS string. */
 sds clusterGenNodeDescription(client *c, clusterNode *node, int use_pport) {
-    clusterNodeData *node_data = nodeData(node);
+    clusterNodeInternal *node_data = nodeData(node);
     int j, start;
     sds ci;
     int port = use_pport && node_data->pport ? node_data->pport : node_data->port;
@@ -5271,7 +5271,7 @@ void addReplyClusterLinksDescription(client *c) {
     di = dictGetSafeIterator(server.cluster->nodes);
     while((de = dictNext(di)) != NULL) {
         clusterNode *node = dictGetVal(de);
-        clusterNodeData *node_data = nodeData(node);
+        clusterNodeInternal *node_data = nodeData(node);
         if (node_data->link) {
             num_links++;
             addReplyClusterLinkDescription(c, node_data->link);
@@ -5291,7 +5291,7 @@ void addReplyClusterLinksDescription(client *c) {
  * -------------------------------------------------------------------------- */
 
 const char *getPreferredEndpoint(clusterNode *n) {
-    clusterNodeData *n_data = nodeData(n);
+    clusterNodeInternal *n_data = nodeData(n);
     switch(server.cluster_preferred_endpoint_type) {
     case CLUSTER_ENDPOINT_TYPE_IP: return n_data->ip;
     case CLUSTER_ENDPOINT_TYPE_HOSTNAME: return (sdslen(n_data->hostname) != 0) ? n_data->hostname : "?";
@@ -5384,7 +5384,7 @@ void clusterUpdateSlots(client *c, unsigned char *slots, int del) {
 }
 
 void addNodeToNodeReply(client *c, clusterNode *node) {
-    clusterNodeData *node_data = nodeData(node);
+    clusterNodeInternal *node_data = nodeData(node);
     addReplyArrayLen(c, 4);
     if (server.cluster_preferred_endpoint_type == CLUSTER_ENDPOINT_TYPE_IP) {
         addReplyBulkCString(c, node_data->ip);
@@ -5460,7 +5460,7 @@ void addNodeReplyForClusterSlot(client *c, clusterNode *node, int start_slot, in
 
 /* Add detailed information of a node to the output buffer of the given client. */
 void addNodeDetailsToShardReply(client *c, clusterNode *node) {
-    clusterNodeData *node_data = nodeData(node);
+    clusterNodeInternal *node_data = nodeData(node);
     int reply_count = 0;
     void *node_replylen = addReplyDeferredLen(c);
     addReplyBulkCString(c, "id");
@@ -7278,7 +7278,7 @@ void clusterRedirectClient(client *c, clusterNode *n, int hashslot, int error_co
     } else if (error_code == CLUSTER_REDIR_MOVED ||
                error_code == CLUSTER_REDIR_ASK)
     {
-        clusterNodeData *n_data = nodeData(n);
+        clusterNodeInternal *n_data = nodeData(n);
         /* Redirect to IP:port. Include plaintext port if cluster is TLS but
          * client is non-TLS. */
         int use_pport = (server.tls_cluster &&
