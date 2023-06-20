@@ -56,21 +56,9 @@ typedef struct clusterNodeFailReport {
 } clusterNodeFailReport;
 
 typedef struct clusterNode {
-    mstime_t ctime; /* Node object creation time. */
     char name[CLUSTER_NAMELEN]; /* Node name, hex string, sha1-size */
     char shard_id[CLUSTER_NAMELEN]; /* shard id, hex string, sha1-size */
     int flags;      /* CLUSTER_NODE_... */
-    uint64_t configEpoch; /* Last configEpoch observed for this node */
-    unsigned char slots[CLUSTER_SLOTS/8]; /* slots handled by this node */
-    uint16_t *slot_info_pairs; /* Slots info represented as (start/end) pair (consecutive index). */
-    int slot_info_pairs_count; /* Used number of slots in slot_info_pairs */
-    int numslots;   /* Number of slots handled by this node */
-    int numslaves;  /* Number of slave nodes, if this is a master */
-    struct clusterNode **slaves; /* pointers to slave nodes */
-    struct clusterNode *slaveof; /* pointer to the master node. Note that it
-                                    may be NULL even if the node is a slave
-                                    if we don't have the master node in our
-                                    tables. */
     void *data;
 } clusterNode;
 
@@ -141,5 +129,6 @@ char* clusterNodeLastKnownIp(clusterNode *node);
 int clusterNodePort(clusterNode *node);
 void freeThisNodesLink(clusterNode *node);
 void freeNodeInboundLink(clusterNode *node);
+clusterNode* clusterNodeGetSlaveof(clusterNode *node);
 
 #endif /* __CLUSTER_H */
