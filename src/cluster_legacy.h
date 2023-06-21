@@ -66,6 +66,13 @@ typedef struct clusterLink {
 #define CLUSTERMSG_TYPE_PUBLISHSHARD 10 /* Pub/Sub Publish shard propagation */
 #define CLUSTERMSG_TYPE_COUNT 11        /* Total number of message types. */
 
+
+/* This structure represent elements of node->fail_reports. */
+typedef struct clusterNodeFailReport {
+    struct clusterNode *node;  /* Node reporting the failure condition. */
+    mstime_t time;             /* Time of the last report from this node. */
+} clusterNodeFailReport;
+
 /* Holds cluster node data specific to *this* cluster implementation. In the near
  * future we will have multiple clustering implementations.
  */
