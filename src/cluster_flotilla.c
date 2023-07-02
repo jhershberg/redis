@@ -5,6 +5,13 @@
 void flotilla_cluster_init(void);
 unsigned long flotilla_connections_count(void);
 
+void initClusterState(clusterNode *myself, void *data) {
+    server.cluster = zmalloc(sizeof(clusterState));
+    server.cluster->myself = myself;
+    server.cluster->nodes = dictCreate(&clusterNodesDictType);
+    server.cluster->internal = data;
+}
+
 void clusterInit(void) {
     flotilla_cluster_init();
 }
@@ -31,7 +38,7 @@ int verifyClusterConfigWithData(void) {
     // see documentation in cluster_legacy.c
     // In short, verify upon server startup that there are no contradicting conditions, e.g., some cached
     // or stored config/data does not match the cluster config or state
-    return 1;
+    return 0;
 }
 
 void clusterUpdateMyselfFlags(void) {
