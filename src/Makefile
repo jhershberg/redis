@@ -404,7 +404,9 @@ ifneq ($(strip $(PREV_FINAL_LDFLAGS)), $(strip $(FINAL_LDFLAGS)))
 endif
 
 # redis-server
-$(REDIS_SERVER_NAME): $(REDIS_SERVER_OBJ)
+$(REDIS_SERVER_NAME): $(REDIS_SERVER_OBJ) $(FLOTILLA_LIB)
+	echo $(FINAL_CFLAGS)
+	echo $(FINAL_LDFLAGS)
 	$(REDIS_LD) -o $@ $^ ../deps/hiredis/libhiredis.a ../deps/lua/src/liblua.a ../deps/hdr_histogram/libhdrhistogram.a ../deps/fpconv/libfpconv.a $(FINAL_LIBS)
 
 # redis-sentinel
