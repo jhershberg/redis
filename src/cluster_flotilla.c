@@ -198,3 +198,23 @@ clusterNode *clusterLookupNode(const char *name, int length) {
 int isClusterManualFailoverInProgress(void) {
     return 0;
 }
+
+int getNumSlaves(clusterNode *node) {
+    return 0;
+}
+
+clusterNode* getSlave(clusterNode *node, int slave_idx) {
+    return 0;
+}
+
+long long getReplOffset(clusterNode* node) {
+    return 0;
+}
+
+int clusterNodePlainTextPort(clusterNode *node) {
+    return 0;
+}
+
+sds clusterNodeHostname(clusterNode* node) {
+    return 0;
+}
