@@ -5,6 +5,12 @@
 void flotilla_cluster_init(void);
 unsigned long flotilla_connections_count(void);
 
+typedef struct flotillaState {
+    long long repl_offset;
+} flotillaState;
+
+static flotillaState *flotilla_state;
+
 void initClusterState(clusterNode *myself, void *data) {
     server.cluster = zmalloc(sizeof(clusterState));
     server.cluster->myself = myself;
@@ -12,8 +18,14 @@ void initClusterState(clusterNode *myself, void *data) {
     server.cluster->internal = data;
 }
 
+long long flotillaGetReplOffset() {
+    return flotilla_state->repl_offset;
+}
+
 void clusterInit(void) {
     flotilla_cluster_init();
+    flotilla_state = zmalloc(sizeof(flotillaState));
+    flotilla_state->repl_offset = server.master_repl_offset;
 }
 
 void clusterInitListeners(void) {
@@ -27,6 +39,7 @@ void clusterCron(void) {
     // file return pointers to nodes. If those nodes need to be deleted,
     // they need to be deleted here and not at the convenience of the flotilla
     // thread
+    flotilla_state->repl_offset = server.master_repl_offset;
 }
 
 void clusterBeforeSleep(void) {
