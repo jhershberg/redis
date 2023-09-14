@@ -3953,9 +3953,9 @@ int processCommand(client *c) {
           c->cmd->proc != execCommand))
     {
         int error_code;
-        clusterNode *n = getNodeByQuery(c,c->cmd,c->argv,c->argc,
+        clusterNodeHandle n = getNodeByQuery(c,c->cmd,c->argv,c->argc,
                                         &c->slot,&error_code);
-        if (n == NULL || n != server.cluster->myself) {
+        if (n == 0 || n != server.cluster->myself) {
             if (c->cmd->proc == execCommand) {
                 discardTransaction(c);
             } else {
@@ -6997,7 +6997,7 @@ int redisIsSupervised(int mode) {
 
 int iAmMaster(void) {
     return ((!server.cluster_enabled && server.masterhost == NULL) ||
-            (server.cluster_enabled && nodeIsMaster(server.cluster->myself)));
+            (server.cluster_enabled && clusterNodeIsMaster(server.cluster->myself)));
 }
 
 #ifdef REDIS_TEST
@@ -7319,7 +7319,7 @@ int main(int argc, char **argv) {
     ACLLoadUsersAtStartup();
     initListeners();
     if (server.cluster_enabled) {
-        clusterInitListeners();
+        clusterInitLast();
     }
     InitServerLast();
 

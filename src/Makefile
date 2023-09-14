@@ -317,6 +317,11 @@ else
     endef
 endif
 
+ifdef FLOTILLA_LIB
+	FINAL_CFLAGS+=-DREDIS_CLUSTER_FLOTILLA
+	FINAL_LIBS+=$(FLOTILLA_LIB)
+endif
+
 REDIS_CC=$(QUIET_CC)$(CC) $(FINAL_CFLAGS)
 REDIS_LD=$(QUIET_LINK)$(CC) $(FINAL_LDFLAGS)
 REDIS_INSTALL=$(QUIET_INSTALL)$(INSTALL)
@@ -341,6 +346,12 @@ ifneq (, $(findstring LOG_REQ_RES, $(REDIS_CFLAGS)))
 else
 	COMMANDS_DEF_FILENAME=commands
 	GEN_COMMANDS_FLAGS=
+endif
+
+ifdef FLOTILLA_LIB
+	GEN_COMMANDS_FLAGS=$(GEN_COMMANDS_FLAG) --feature-flag flotilla-cluster
+else
+	GEN_COMMANDS_FLAGS=$(GEN_COMMANDS_FLAG) --feature-flag legacy-cluster
 endif
 
 REDIS_SERVER_NAME=redis-server$(PROG_SUFFIX)
@@ -438,7 +449,18 @@ DEP = $(REDIS_SERVER_OBJ:%.o=%.d) $(REDIS_CLI_OBJ:%.o=%.d) $(REDIS_BENCHMARK_OBJ
 # The file commands.def is checked in and doesn't normally need to be rebuilt. It
 # is built only if python is available and its prereqs are modified.
 ifneq (,$(PYTHON))
-$(COMMANDS_DEF_FILENAME).def: commands/*.json ../utils/generate-command-code.py
+FORCE:
+
+LAST_FLAGS := $(shell cat last-command-flags.txt)
+CURRENT_FLAGS := $(shell echo $(GEN_COMMANDS_FLAGS))
+last-command-flags.txt: FORCE
+	@if [ "$(LAST_FLAGS)" != "$(CURRENT_FLAGS)" ]; \
+	then \
+	  echo Command gen flags updated...; \
+	  echo $(GEN_COMMANDS_FLAGS) > last-command-flags.txt; \
+	fi
+
+$(COMMANDS_DEF_FILENAME).def: commands/*.json ../utils/generate-command-code.py last-command-flags.txt
 	$(QUIET_GEN)$(PYTHON) ../utils/generate-command-code.py $(GEN_COMMANDS_FLAGS)
 endif
 

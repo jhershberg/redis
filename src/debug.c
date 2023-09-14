@@ -1012,34 +1012,7 @@ NULL
             return;
         }
         addReply(c, shared.ok);
-    } else if(!strcasecmp(c->argv[1]->ptr,"CLUSTERLINK") &&
-        !strcasecmp(c->argv[2]->ptr,"KILL") &&
-        c->argc == 5) {
-        if (!server.cluster_enabled) {
-            addReplyError(c, "Debug option only available for cluster mode enabled setup!");
-            return;
-        }
-
-        /* Find the node. */
-        clusterNode *n = clusterLookupNode(c->argv[4]->ptr, sdslen(c->argv[4]->ptr));
-        if (!n) {
-            addReplyErrorFormat(c,"Unknown node %s", (char*)c->argv[4]->ptr);
-            return;
-        }
-
-        /* Terminate the link based on the direction or all. */
-        if (!strcasecmp(c->argv[3]->ptr,"from")) {
-            freeClusterLink(n->inbound_link);
-        } else if (!strcasecmp(c->argv[3]->ptr,"to")) {
-            freeClusterLink(n->link);
-        } else if (!strcasecmp(c->argv[3]->ptr,"all")) {
-            freeClusterLink(n->link);
-            freeClusterLink(n->inbound_link);
-        } else {
-            addReplyErrorFormat(c, "Unknown direction %s", (char*) c->argv[3]->ptr);
-        }
-        addReply(c,shared.ok);
-    } else {
+    } else if(!handleDebugClusterCommand(c)) {
         addReplySubcommandSyntaxError(c);
         return;
     }
